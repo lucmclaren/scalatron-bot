@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.11.8"
 
+assemblyJarName := "ScalatronBot.jar"
+
 // relative path to local scalatron installation
 target in scalatron := baseDirectory.value / "../scalatron"
 
