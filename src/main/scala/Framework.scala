@@ -126,6 +126,8 @@ object XY {
   val Down      = XY( 0,  1)
   val DownRight = XY( 1,  1)
 
+  val directions = List(Right, RightUp, Up, UpLeft, Left, LeftDown, Down, DownRight)
+
   def fromDirection45(index: Int): XY = index match {
     case Direction45.Right => Right
     case Direction45.RightUp => RightUp
