@@ -1,7 +1,7 @@
 //import com.sun.xml.internal.ws.handler.HandlerProcessor.Direction
 import scala.util.Random
 class ControlFunctionFactory {
-  def create = try { new ControlFunction().respond _ } catch { case e: Throwable => e.printStackTrace(); "" }
+  def create = new ControlFunction().respond _
 }
 
 class ControlFunction {
@@ -9,43 +9,48 @@ class ControlFunction {
     val (opcode, paramMap) = CommandParser(input)
 
     if( opcode == "React" ) {
-      try {
-        var direction = if (Bot.lastDirection != XY.Zero) Bot.lastDirection else XY.Up
-        val view = new View(paramMap("view"))
-        val analyzer = new ViewAnalyzer(view)
-
-        val offsetFluppet = view.offsetToNearest(Rules.Fluppet)
-        val offsetZugar = view.offsetToNearest(Rules.Zugar)
-
-        (offsetFluppet, offsetZugar) match {
-          case (Some(f), Some(z)) if (z.stepsTo(view.center) >= f.stepsTo(view.center)) => direction = f.signum
-          case (_, Some(z))     => direction = z.signum
-          case (Some(f), None)  => direction = f.signum
-          case (None, None)     => direction = Bot.lastDirection
-        }
-
-        val badObjAround = analyzer.isBadObjAround
-        if (analyzer.isBadObjInDirection(direction)) {
-          val possibleDirections = badObjAround.filter({ case (x, y) => !y }).keys.toArray
-          val randElement = Random.nextInt(possibleDirections.size)
-          direction = possibleDirections(randElement)
-        }
-
-        Bot.lastDirection = direction
-
-        "Move(direction=" + direction.toString + ")"
-      }
-      catch {
-        case e: Exception => "Log(text=" + e.printStackTrace + ")"
-      }
+      Bot.behave(paramMap)
     } else ""
   }
 }
 
-// Bot State
+
+}
+
 object Bot {
-  var lastDirection   = XY.Zero
-  var wallInDirection = false
+  def behave(paramMap: Map[String, String]): String = {
+    try {
+      var direction = XY(paramMap.getOrElse("masterLastDirection", XY.Up.toString))
+      val view = new View(paramMap("view"))
+      val analyzer = new ViewAnalyzer(view)
+      val dirGoodObj, offsetGoodObj = dirToGoodObj(view)
+
+      // TODO: change direction to next goodObj, if a badObj is around. Not Random!
+      val badObjAround = analyzer.isBadObjAround
+      if (analyzer.isBadObjInDirection(direction)) {
+        val possibleDirections = badObjAround.filter({ case (x, y) => !y }).keys.toArray
+        val randElement = Random.nextInt(possibleDirections.size)
+        direction = possibleDirections(randElement)
+      }
+
+      s"Move(direction=$direction)|Set(masterLastDirection=$direction)"
+    }
+    catch {
+      case e: Exception => "Log(text=" + e.printStackTrace + ")"
+    }
+  }
+
+  def dirToGoodObj(view: View): (XY, Int) = {
+    val offsetFluppet = view.offsetToNearest(Rules.Fluppet)
+    val offsetZugar = view.offsetToNearest(Rules.Zugar)
+
+    (offsetFluppet, offsetZugar) match {
+      case (Some(f), Some(z)) if (z.stepsTo(view.center) >= f.stepsTo(view.center)) => (f.signum, f.stepsTo(view.center))
+      case (_, Some(z)) => (z.signum, z.stepsTo(view.center))
+      case (Some(f), None) => (f.signum, f.stepsTo(view.center))
+      case (None, None) => (XY.Zero, 0)
+    }
+  }
 }
 
 object Rules {
