@@ -14,9 +14,6 @@ class ControlFunction {
   }
 }
 
-
-}
-
 object Bot {
   def behave(paramMap: Map[String, String]): String = {
     try {
